@@ -1,5 +1,5 @@
 import numpy as np
-from cv2 import VideoCapture, imshow
+import cv2
 
 
 class LEDTracker:
@@ -11,7 +11,7 @@ class LEDTracker:
             thresholds - dictionary with thresholds for all three channels
             roi - region of interest to crop out of original video, specified as tuple (T, L, B, R) of top, left, bottom and right position
         """
-        self.__camera = VideoCapture(0)
+        self.__camera = cv2.VideoCapture(0)
         self.__tracked_channels = tracked_channels
         self.__thresholds = thresholds
         self.__roi = roi
@@ -36,21 +36,21 @@ class LEDTracker:
             cropped_frame = self.__crop_frame(frame, self.__roi)
             b_frame, g_frame, r_frame = cv2.split(cropped_frame)
 
-            mouse_centre, pf = self.__detect_LED(cropped_frame, self.thresholds['r'])
-
             if self.__tracked_channels['r']:
-                r_position = self.__detect_LED(r_frame, self.threshold['r'])
+                r_position = self.__detect_LED(r_frame, self.__thresholds['r'])
                 trajectories['r'].append(r_position)
 
             if self.__tracked_channels['g']:
-                g_position = self.__detect_LED(g_frame, self.threshold['g'])
+                g_position = self.__detect_LED(g_frame, self.__thresholds['g'])
                 trajectories['g'].append(g_position)
 
             if self.__tracked_channels['b']:
-                b_position = self.__detect_LED(b_frame, self.threshold['b'])
+                b_position = self.__detect_LED(b_frame, self.__thresholds['b'])
                 trajectories['b'].append(b_position)
 
             send_message({'r': r_position, 'g': g_position, 'b': b_position})
+
+            cv2.imshow("video in", cropped_frame)
 
         return trajectories
 
@@ -66,8 +66,10 @@ class LEDTracker:
         """
 
         MAX_VAL = 255
-        thresholded = cv2.threshold(frame, threshold, MAX_VAL, cv2.THRESH_BINARY)
-        contours, _ = cv2.findContours(preprocessed_frame, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        thresholded = cv2.threshold(frame, threshold, MAX_VAL, cv2.THRESH_BINARY)[1]
+        contours, _ = cv2.findContours(thresholded, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        if not contours:
+            return (-1, -1)
         largest_contour_idx = np.argmax([cv2.contourArea(c) for c in contours])
         return self.__compute_center(contours[largest_contour_idx])
 
