@@ -24,7 +24,10 @@ class LEDTracker:
             self.__camera.set(cv2.CAP_PROP_FRAME_WIDTH, frame_size[0])
             self.__camera.set(cv2.CAP_PROP_FRAME_HEIGHT, frame_size[1])
             
-        self.__frame_size = (self.__camera.get(cv2.CAP_PROP_FRAME_WIDTH), self.__camera.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        if roi is None:
+            self.__frame_size = (self.__camera.get(cv2.CAP_PROP_FRAME_WIDTH), self.__camera.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        else:
+            self.__frame_size = (float(roi[2]-roi[0]), float(roi[3]-roi[1]))
 
     def __del__(self):
         self.__camera.release()
@@ -61,8 +64,8 @@ class LEDTracker:
 
             send_message(positions, self.__frame_size)
 
-            cv2.imshow("video in", cropped_frame)
-            cv2.waitKey(0)
+            #cv2.imshow("video in", cropped_frame)
+            #cv2.waitKey(0)
 
         return trajectories
 
@@ -129,9 +132,8 @@ class MessageSender:
             frame_size - tuple (widht, height)
         """
 
-        print(positions)
         for c, p in positions.items():
-            self.__clients[c].send_message(f"/{c}", self.__prepare_message(p, frame_size))
+            self.__clients[c].send_message(self.__get_address(c), self.__prepare_message(p, frame_size))
 
     def __prepare_message(self, position, frame_size):
         """ Prepare message in appropriate format.
@@ -148,7 +150,26 @@ class MessageSender:
         else:
             p = (position[0] / frame_size[0], position[1] / frame_size[1])
 
-        return (*p, *frame_size)
+        message = (*p, *frame_size)
+        return message
+
+    def __get_address(self, color):
+        """ Given the `color` get address for osc message.
+
+        Args:
+            color - string ('r', 'g' or 'b')
+
+        Return:
+            address - string
+        """
+        if color == 'r':
+            return "/red"
+        elif color == 'g':
+            return "/green"
+        elif color == 'b':
+            return "/blue"
+        else:
+            raise ValueError(f"Unsupported color {color}.")
 
 
 
@@ -156,9 +177,9 @@ if __name__ == "__main__":
     args = ArgumentParser()
     args.add_argument("--server_address", type=str, default="localhost", help="ip address of a server receiving positions.")
     args.add_argument("--pixel_coords", type=bool, default=False, help="Whether to send position in pixel coords (False by default, use 0-1 range).")
-    args.add_argument("--r_port", type=int, default=1, help="Port for red LED data.")
-    args.add_argument("--g_port", type=int, default=2, help="Port for green LED data.")
-    args.add_argument("--b_port", type=int, default=3, help="Port for blue LED data.")
+    args.add_argument("--r_port", type=int, default=27020, help="Port for red LED data.")
+    args.add_argument("--g_port", type=int, default=27021, help="Port for green LED data.")
+    args.add_argument("--b_port", type=int, default=27022, help="Port for blue LED data.")
     args.add_argument("--r_thr", type=int, default=228, help="Detection threshold for red LED (0-255 range).")
     args.add_argument("--g_thr", type=int, default=228, help="Detection threshold for green LED (0-255 range).")
     args.add_argument("--b_thr", type=int, default=228, help="Detection threshold for blue LED (0-255 range).")
@@ -167,8 +188,8 @@ if __name__ == "__main__":
     args.add_argument("--roi", type=int, nargs=4, default=None, help="Region of interest to crop out of original video, specified as tuple (T, L, B, R) of top, left, bottom and right position.")
     args = args.parse_args()
 
-    sender = MessageSender(args.server_address, args.pixel_coords, ports={'r':args.r_port, 'b':args.g_port, 'b':args.b_port})
-    tracker = LEDTracker({'r':args.r_thr, 'b':args.g_thr, 'b':args.b_thr}, args.frame_rate, args.resolution, args.roi)
+    sender = MessageSender(args.server_address, args.pixel_coords, ports={'r':args.r_port, 'g':args.g_port, 'b':args.b_port})
+    tracker = LEDTracker({'r':args.r_thr, 'g':args.g_thr, 'b':args.b_thr}, args.frame_rate, args.resolution, args.roi)
 
     trajectories = tracker.track(sender.send_message)
 
