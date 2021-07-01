@@ -184,8 +184,8 @@ if __name__ == "__main__":
     args.add_argument("--g_thr", type=int, default=228, help="Detection threshold for green LED (0-255 range).")
     args.add_argument("--b_thr", type=int, default=228, help="Detection threshold for blue LED (0-255 range).")
     args.add_argument("--frame_rate", type=int, default=60, help="Frame rate to use for the camera.")
-    args.add_argument("--resolution", type=int, nargs=2, default=None, help="Resolution (width, height) for the camera.")
-    args.add_argument("--roi", type=int, nargs=4, default=None, help="Region of interest to crop out of original video, specified as tuple (T, L, B, R) of top, left, bottom and right position.")
+    args.add_argument("--resolution", type=int, nargs=2, default=None, help="Resolution for the camera specified as a list of two numbers (width height).")
+    args.add_argument("--roi", type=int, nargs=4, default=None, help="Region of interest to crop out of original video, specified as a list of four numbers (top left bottom right).")
     args = args.parse_args()
 
     sender = MessageSender(args.server_address, args.pixel_coords, ports={'r':args.r_port, 'g':args.g_port, 'b':args.b_port})
