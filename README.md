@@ -5,7 +5,7 @@ Made as a replacement for "bonsai part" of [OpenEphys GUI tracking plugin](https
 
 ## Installation
 
-`pip install -r requirements.txt` or `sudo make install` to have 'track_leds' program availably globally
+`pip install -r requirements.txt` or `sudo make install` to have 'track_leds' script available globally
 
 ## Usage
 
